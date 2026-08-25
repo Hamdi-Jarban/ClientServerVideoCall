@@ -1,0 +1,30 @@
+<Window x:Class="VideoCall.Client.Views.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="تسجيل الدخول" Height="550" Width="380"
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+    <Grid>
+        <Border Style="{StaticResource CardStyle}" Margin="20" VerticalAlignment="Center">
+            <StackPanel>
+                <TextBlock Text="نظام المكالمات" Style="{StaticResource TitleText}" HorizontalAlignment="Center" />
+                <TextBlock Text="تسجيل الدخول" Style="{StaticResource SubtitleText}" HorizontalAlignment="Center" Margin="0,4,0,20" />
+
+                <TextBlock Text="اسم المستخدم" Style="{StaticResource FieldLabel}" />
+                <TextBox x:Name="UsernameBox" Style="{StaticResource RoundedTextBox}" Margin="0,0,0,14"
+                         Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
+
+                <TextBlock Text="كلمة المرور" Style="{StaticResource FieldLabel}" />
+                <PasswordBox x:Name="PasswordBox" Style="{StaticResource RoundedPasswordBox}" Margin="0,0,0,14" />
+
+                <TextBlock Text="عنوان الخادم" Style="{StaticResource FieldLabel}" />
+                <TextBox Style="{StaticResource RoundedTextBox}" Margin="0,0,0,20"
+                         Text="{Binding ServerAddress, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+
+                <Button Content="تسجيل الدخول" Style="{StaticResource PrimaryButton}" Height="40" Click="LoginButton_Click" />
+
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#F87171" Margin="0,14,0,0"
+                           TextWrapping="Wrap" TextAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

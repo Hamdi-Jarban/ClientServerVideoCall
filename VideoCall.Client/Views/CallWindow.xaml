@@ -1,0 +1,58 @@
+<Window x:Class="VideoCall.Client.Views.CallWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="المكالمة" Height="600" Width="480"
+        WindowStartupLocation="CenterScreen">
+    <Grid Background="#020617">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Remote video: main view -->
+        <Grid Grid.Row="0">
+            <Border Background="#0F172A">
+                <Image Source="{Binding RemoteVideo}" Stretch="Uniform" />
+            </Border>
+
+            <!-- Placeholder shown until remote video arrives -->
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                        Visibility="{Binding RemoteVideo, Converter={StaticResource NullToVisibilityConverter}}">
+                <TextBlock Text="{Binding OtherParty}" Foreground="#F1F5F9" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding StateText}" Foreground="#94A3B8" FontSize="14" HorizontalAlignment="Center" Margin="0,8,0,0" />
+            </StackPanel>
+
+            <!-- Local video: picture-in-picture -->
+            <Border Width="140" Height="100" CornerRadius="10" Background="#1E293B"
+                    HorizontalAlignment="Left" VerticalAlignment="Top" Margin="16" ClipToBounds="True">
+                <Image Source="{Binding LocalVideo}" Stretch="UniformToFill" />
+            </Border>
+
+            <!-- Call state banner -->
+            <Border Background="#66000000" CornerRadius="14" Padding="12,6"
+                    HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0">
+                <TextBlock Text="{Binding StateText}" Foreground="White" FontSize="13" />
+            </Border>
+        </Grid>
+
+        <!-- Controls -->
+        <Border Grid.Row="1" Background="#0F172A" Padding="16">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Width="64" Height="64" Margin="10,0" Style="{StaticResource SecondaryButton}"
+                        Command="{Binding ToggleMuteCommand}">
+                    <TextBlock Text="{Binding IsMuted, Converter={StaticResource MuteLabelConverter}}"
+                               TextAlignment="Center" TextWrapping="Wrap" FontSize="11" />
+                </Button>
+                <Button Width="64" Height="64" Margin="10,0" Style="{StaticResource SecondaryButton}"
+                        Command="{Binding ToggleCameraCommand}">
+                    <TextBlock Text="{Binding IsCameraOn, Converter={StaticResource CameraLabelConverter}}"
+                               TextAlignment="Center" TextWrapping="Wrap" FontSize="11" />
+                </Button>
+                <Button Width="64" Height="64" Margin="10,0" Style="{StaticResource DangerButton}"
+                        Command="{Binding EndCallCommand}">
+                    <TextBlock Text="إنهاء" TextAlignment="Center" TextWrapping="Wrap" FontSize="11" />
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
