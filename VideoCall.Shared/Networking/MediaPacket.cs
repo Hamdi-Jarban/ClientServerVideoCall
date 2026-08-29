@@ -5,7 +5,8 @@ namespace VideoCall.Shared.Networking;
 public enum MediaType : byte
 {
     Audio = 1,
-    Video = 2
+    Video = 2,
+    Handshake = 3
 }
 
 public class MediaPacket
@@ -26,6 +27,9 @@ public class MediaPacket
     public byte[] Serialize()
     {
         var usernameBytes = Encoding.UTF8.GetBytes(SenderUsername ?? string.Empty);
+        if (usernameBytes.Length > ushort.MaxValue) throw new InvalidDataException("Sender username is too long.");
+        if (Payload.Length > MaxSafeUdpPayload) throw new InvalidDataException("Payload exceeds the safe UDP size.");
+        if (FragmentCount == 0 || FragmentIndex >= FragmentCount) throw new InvalidDataException("Invalid fragment metadata.");
         var totalHeaderSize = BaseHeaderSize + usernameBytes.Length;
         var buffer = new byte[totalHeaderSize + Payload.Length];
         int offset = 0;
@@ -61,6 +65,7 @@ public class MediaPacket
         var sessionToken = ReadGuid(data, ref offset);
         var callId = ReadGuid(data, ref offset);
         var mediaType = (MediaType)data[offset++];
+        if (mediaType is not (MediaType.Audio or MediaType.Video or MediaType.Handshake)) return null;
         var seq = ReadUInt32BE(data, ref offset);
         var ts = ReadInt64BE(data, ref offset);
         var fragIndex = ReadUInt16BE(data, ref offset);
@@ -77,7 +82,8 @@ public class MediaPacket
         if (offset + 4 > length) return null;
         var payloadLength = ReadInt32BE(data, ref offset);
 
-        if (payloadLength < 0 || offset + payloadLength > length)
+        if (payloadLength < 0 || payloadLength > MaxSafeUdpPayload || offset + payloadLength > length ||
+            fragCount == 0 || fragIndex >= fragCount)
         {
             return null;
         }

@@ -10,11 +10,6 @@ public class User
     public string Password { get; init; } = string.Empty;
 }
 
-/// <summary>
-/// Represents a user that is currently connected and authenticated.
-/// SessionId uniquely identifies a single TCP connection / login,
-/// so a reconnect always gets a brand-new SessionId.
-/// </summary>
 public class OnlineUser
 {
     public string Username { get; init; } = string.Empty;

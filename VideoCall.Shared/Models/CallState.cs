@@ -1,14 +1,6 @@
 namespace VideoCall.Shared.Models;
 
-/// <summary>
-/// Explicit call state machine.
-///
-///   Online -> Calling -> Ringing -> Connected -> Ended -> Online
-///
-/// Transitions are enforced server-side in CallManager so that
-/// invalid operations (accepting an expired/foreign call, ending
-/// a call twice, etc.) are rejected instead of silently applied.
-/// </summary>
+
 public enum CallState
 {
     Calling,

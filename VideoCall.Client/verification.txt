@@ -1,0 +1,99 @@
+## client files
+App.xaml
+App.xaml.cs
+Media/AudioService.cs
+Media/FrameCodec.cs
+Media/VideoCaptureService.cs
+Media/VideoFrameReassembler.cs
+README_AR.md
+Services/NetworkClient.cs
+Services/UdpMediaClient.cs
+VideoCall.Client.csproj
+ViewModels/GroupCallViewModel.cs
+ViewModels/LoginViewModel.cs
+ViewModels/MainViewModel.cs
+ViewModels/Mvvm.cs
+ViewModels/RemoteParticipantViewModel.cs
+ViewModels/RoomViewModel.cs
+Views/Converters.cs
+Views/GroupCallWindow.xaml
+Views/GroupCallWindow.xaml.cs
+Views/IncomingCallWindow.xaml
+Views/IncomingCallWindow.xaml.cs
+Views/LoginWindow.xaml
+Views/LoginWindow.xaml.cs
+Views/MainWindow.xaml
+Views/MainWindow.xaml.cs
+Views/RoomWindow.xaml
+Views/RoomWindow.xaml.cs
+Views/Theme.xaml
+verification.txt
+
+## xaml/code-behind classes
+client_restructured/App.xaml:1:<Application x:Class="VideoCall.Client.App"
+client_restructured/App.xaml.cs:7:public partial class App : Application
+client_restructured/Views/LoginWindow.xaml:1:<Window x:Class="VideoCall.Client.Views.LoginWindow"
+client_restructured/Views/LoginWindow.xaml.cs:7:public partial class LoginWindow : Window
+client_restructured/Views/RoomWindow.xaml:1:<Window x:Class="VideoCall.Client.Views.RoomWindow"
+client_restructured/Views/RoomWindow.xaml.cs:7:public partial class RoomWindow : Window
+client_restructured/Views/GroupCallWindow.xaml:1:<Window x:Class="VideoCall.Client.Views.GroupCallWindow"
+client_restructured/Views/GroupCallWindow.xaml.cs:6:public partial class GroupCallWindow : Window
+client_restructured/Views/MainWindow.xaml:1:<Window x:Class="VideoCall.Client.Views.MainWindow"
+client_restructured/Views/MainWindow.xaml.cs:9:public partial class MainWindow : Window
+client_restructured/Views/IncomingCallWindow.xaml:1:<Window x:Class="VideoCall.Client.Views.IncomingCallWindow"
+client_restructured/Views/IncomingCallWindow.xaml.cs:5:public partial class IncomingCallWindow : Window
+
+## shared contract references
+client_restructured/Services/NetworkClient.cs:33:    public event Action<StartConversationMediaPayload>? ConversationMediaStarted;
+client_restructured/Services/NetworkClient.cs:34:    public event Action<StopConversationMediaPayload>? ConversationMediaStopped;
+client_restructured/Services/NetworkClient.cs:104:    public Task StartConversationMediaAsync(string conversationId) => SendAsync(
+client_restructured/Services/NetworkClient.cs:105:        Message.Create(MessageType.StartConversationMedia,
+client_restructured/Services/NetworkClient.cs:106:            new StartConversationMediaPayload(conversationId)), CancellationToken.None);
+client_restructured/Services/NetworkClient.cs:108:    public Task StopConversationMediaAsync(string conversationId) => SendAsync(
+client_restructured/Services/NetworkClient.cs:109:        Message.Create(MessageType.StopConversationMedia,
+client_restructured/Services/NetworkClient.cs:110:            new StopConversationMediaPayload(conversationId)), CancellationToken.None);
+client_restructured/Services/NetworkClient.cs:195:            case MessageType.StartConversationMedia:
+client_restructured/Services/NetworkClient.cs:196:                if (message.ReadPayload<StartConversationMediaPayload>() is { } start) ConversationMediaStarted?.Invoke(start);
+client_restructured/Services/NetworkClient.cs:198:            case MessageType.StopConversationMedia:
+client_restructured/Services/NetworkClient.cs:199:                if (message.ReadPayload<StopConversationMediaPayload>() is { } stop) ConversationMediaStopped?.Invoke(stop);
+client_restructured/Services/UdpMediaClient.cs:87:            ConversationId = _conversationId,
+client_restructured/Services/UdpMediaClient.cs:88:            SenderUsername = _username,
+client_restructured/Services/UdpMediaClient.cs:99:        var packet = CreatePacket(MediaType.Handshake, 0, 0, 1, new byte[] { 1 });
+client_restructured/Services/UdpMediaClient.cs:131:                if (packet is null || packet.ConversationId != _conversationId) continue;
+client_restructured/Services/UdpMediaClient.cs:132:                if (packet.MediaType == MediaType.Handshake) continue;
+client_restructured/ViewModels/GroupCallViewModel.cs:40:    public string ConversationId => _conversationId;
+client_restructured/ViewModels/GroupCallViewModel.cs:101:    private void OnMediaStarted(StartConversationMediaPayload payload)
+client_restructured/ViewModels/GroupCallViewModel.cs:103:        if (!payload.ConversationId.Equals(_conversationId, StringComparison.OrdinalIgnoreCase)) return;
+client_restructured/ViewModels/GroupCallViewModel.cs:111:    private void OnMediaStopped(StopConversationMediaPayload payload)
+client_restructured/ViewModels/GroupCallViewModel.cs:113:        if (!payload.ConversationId.Equals(_conversationId, StringComparison.OrdinalIgnoreCase)) return;
+client_restructured/ViewModels/GroupCallViewModel.cs:215:        if (!_reassemblers.TryGetValue(packet.SenderUsername, out var reassembler))
+client_restructured/ViewModels/GroupCallViewModel.cs:218:            _reassemblers[packet.SenderUsername] = reassembler;
+client_restructured/ViewModels/GroupCallViewModel.cs:227:                var participant = AddOrUpdateParticipant(packet.SenderUsername);
+client_restructured/ViewModels/RoomViewModel.cs:67:            await _network.StartConversationMediaAsync(RoomId.Trim());
+client_restructured/ViewModels/RoomViewModel.cs:95:    private void OnMediaStarted(StartConversationMediaPayload payload)
+client_restructured/ViewModels/RoomViewModel.cs:97:        if (!payload.ConversationId.Equals(RoomId, StringComparison.OrdinalIgnoreCase)) return;
+client_restructured/ViewModels/RoomViewModel.cs:107:    private void OnMediaStopped(StopConversationMediaPayload payload)
+client_restructured/ViewModels/RoomViewModel.cs:109:        if (!payload.ConversationId.Equals(RoomId, StringComparison.OrdinalIgnoreCase)) return;
+client_restructured/ViewModels/RoomViewModel.cs:119:            ErrorCodes.RoomFull => "الغرفة ممتلئة.",
+
+## brace balance
+client_restructured/Media/AudioService.cs open=14 close=14
+client_restructured/Media/FrameCodec.cs open=2 close=2
+client_restructured/Media/VideoCaptureService.cs open=18 close=18
+client_restructured/Media/VideoFrameReassembler.cs open=5 close=5
+client_restructured/Services/NetworkClient.cs open=40 close=40
+client_restructured/Services/UdpMediaClient.cs open=27 close=27
+client_restructured/ViewModels/GroupCallViewModel.cs open=48 close=48
+client_restructured/ViewModels/LoginViewModel.cs open=15 close=15
+client_restructured/ViewModels/MainViewModel.cs open=14 close=14
+client_restructured/ViewModels/Mvvm.cs open=9 close=9
+client_restructured/ViewModels/RemoteParticipantViewModel.cs open=6 close=6
+client_restructured/ViewModels/RoomViewModel.cs open=31 close=31
+client_restructured/Views/Converters.cs open=1 close=1
+client_restructured/Views/GroupCallWindow.xaml.cs open=3 close=3
+client_restructured/Views/IncomingCallWindow.xaml.cs open=5 close=5
+client_restructured/Views/LoginWindow.xaml.cs open=5 close=5
+client_restructured/Views/MainWindow.xaml.cs open=21 close=21
+client_restructured/Views/RoomWindow.xaml.cs open=6 close=6
+
+## dotnet

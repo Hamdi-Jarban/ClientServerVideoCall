@@ -92,6 +92,40 @@ public class RoomManager
         return RoomOperationResult.Ok;
     }
 
+    public bool TryGetRoom(string roomId, out Room? room)
+    {
+        if (!_rooms.TryGetValue(roomId, out var current))
+        {
+            room = null;
+            return false;
+        }
+
+        lock (current)
+        {
+            room = new Room
+            {
+                RoomId = current.RoomId,
+                Host = current.Host,
+                Members = new HashSet<string>(current.Members, StringComparer.OrdinalIgnoreCase)
+            };
+            return true;
+        }
+    }
+
+    public bool IsHost(string roomId, string username)
+    {
+        return TryGetRoom(roomId, out var room) &&
+               room is not null &&
+               string.Equals(room.Host, username, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public bool IsMember(string roomId, string username)
+    {
+        return TryGetRoom(roomId, out var room) &&
+               room is not null &&
+               room.Members.Contains(username);
+    }
+
     /// <summary>Removes a disconnected user from every room they belonged to.</summary>
     public List<Room> RemoveUserFromAllRooms(string username)
     {
@@ -112,6 +146,10 @@ public class RoomManager
             if (room.Members.Count == 0)
             {
                 _rooms.TryRemove(room.RoomId, out _);
+            }
+            else if (string.Equals(room.Host, username, StringComparison.OrdinalIgnoreCase))
+            {
+                room.Host = room.Members.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).First();
             }
         }
 

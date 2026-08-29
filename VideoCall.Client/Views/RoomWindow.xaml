@@ -1,69 +1,123 @@
 <Window x:Class="VideoCall.Client.Views.RoomWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="غرفة المكالمة" Height="520" Width="400"
-        WindowStartupLocation="CenterOwner">
-    <Grid Margin="20">
+        Title="الغرف الجماعية" Height="650" Width="900"
+        MinHeight="560" MinWidth="760"
+        WindowStartupLocation="CenterOwner"
+        FlowDirection="RightToLeft">
+    <Grid Margin="24">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="غرفة المكالمة" Style="{StaticResource TitleText}" />
+        <Grid Grid.Row="0" Margin="0,0,0,18">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="الغرف الجماعية" Style="{StaticResource TitleText}" />
+                <TextBlock Text="أنشئ غرفة أو انضم إلى محادثة قائمة"
+                           Style="{StaticResource SubtitleText}" Margin="0,6,0,0" />
+            </StackPanel>
+            <Border Grid.Column="1" Background="#172554" CornerRadius="8" Padding="14,8">
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#BFDBFE" />
+            </Border>
+        </Grid>
 
-        <StackPanel Grid.Row="1" Margin="0,14,0,0">
-            <TextBlock Text="رقم الغرفة" Style="{StaticResource FieldLabel}" />
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,18">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0" Style="{StaticResource RoundedTextBox}"
-                         Text="{Binding RoomId, UpdateSourceTrigger=PropertyChanged}"
-                         IsEnabled="{Binding HasRoom, Converter={StaticResource InverseBooleanConverter}}" />
-                <Button Grid.Column="1" Content="إنشاء غرفة" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
-                        Command="{Binding CreateRoomCommand}" IsEnabled="{Binding HasRoom, Converter={StaticResource InverseBooleanConverter}}" />
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="معرف الغرفة" Style="{StaticResource FieldLabel}" />
+                    <TextBox Style="{StaticResource RoundedTextBox}"
+                             Text="{Binding RoomId, UpdateSourceTrigger=PropertyChanged}"
+                             IsEnabled="{Binding HasRoom, Converter={StaticResource InverseBooleanConverter}}" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="إنشاء غرفة" Style="{StaticResource PrimaryButton}"
+                        Command="{Binding CreateRoomCommand}" Margin="12,20,4,0"
+                        IsEnabled="{Binding HasRoom, Converter={StaticResource InverseBooleanConverter}}" />
+                <Button Grid.Column="2" Content="انضمام" Style="{StaticResource SecondaryButton}"
+                        Command="{Binding JoinRoomCommand}" Margin="4,20,0,0"
+                        IsEnabled="{Binding HasRoom, Converter={StaticResource InverseBooleanConverter}}" />
             </Grid>
-            <TextBlock Text="{Binding StatusMessage}" Foreground="#94A3B8" Margin="0,10,0,0" TextAlignment="Right" />
-        </StackPanel>
-
-        <StackPanel Grid.Row="2" Margin="0,10,0,0" Visibility="{Binding HasRoom, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <TextBlock Style="{StaticResource FieldLabel}">
-                <Run Text="المضيف: " /><Run Text="{Binding Host, Mode=OneWay}" />
-            </TextBlock>
-        </StackPanel>
-
-        <Border Grid.Row="3" Style="{StaticResource CardStyle}" Margin="0,14,0,14"
-                Visibility="{Binding HasRoom, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="المشاركون" Style="{StaticResource FieldLabel}" FontSize="15" Margin="0,0,0,10" />
-                <ListBox ItemsSource="{Binding Members}" Background="Transparent" BorderThickness="0">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="#334155" CornerRadius="8" Padding="10" Margin="0,4">
-                                <TextBlock Text="{Binding}" TextAlignment="Right" />
-                            </Border>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </DockPanel>
         </Border>
 
-        <Grid Grid.Row="4" Visibility="{Binding HasRoom, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="18" />
+                <ColumnDefinition Width="285" />
             </Grid.ColumnDefinitions>
-            <TextBox Grid.Column="0" Style="{StaticResource RoundedTextBox}"
-                     Text="{Binding NewMemberUsername, UpdateSourceTrigger=PropertyChanged}" />
-            <Button Grid.Column="1" Content="إضافة مستخدم" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
-                    Command="{Binding AddUserCommand}" Click="Button_Click" />
-            <Button Grid.Column="2" Content="مغادرة الغرفة" Style="{StaticResource DangerButton}" Margin="8,0,0,0"
-                    Command="{Binding LeaveRoomCommand}" />
+
+            <Border Grid.Column="0" Background="#020617" CornerRadius="12" Padding="26"
+                    Visibility="{Binding HasRoom, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding RoomId, StringFormat='الغرفة الحالية: {0}'}"
+                               FontSize="24" FontWeight="SemiBold" Foreground="#F8FAFC" />
+                    <TextBlock Text="{Binding Host, StringFormat='المضيف: {0}'}"
+                               Foreground="#93C5FD" Margin="0,8,0,18" />
+                    <TextBlock Text="{Binding IsMediaActive, StringFormat='حالة الوسائط: {0}'}"
+                               Foreground="#CBD5E1" />
+                    <TextBlock Text="يمكن للمضيف بدء المحادثة بعد اكتمال قائمة الأعضاء."
+                               Foreground="#64748B" TextWrapping="Wrap" Margin="0,12,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}"
+                    Visibility="{Binding HasRoom, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                        <TextBlock Text="الأعضاء" Style="{StaticResource FieldLabel}" />
+                        <TextBlock Text="{Binding Members.Count, StringFormat=' ({0})'}" Foreground="#64748B" />
+                    </DockPanel>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Members}" Background="Transparent" BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#334155" CornerRadius="7" Padding="10,8" Margin="0,3">
+                                    <DockPanel>
+                                        <Ellipse Width="8" Height="8" Fill="#22C55E" Margin="0,0,8,0" />
+                                        <TextBlock Text="{Binding}" Foreground="#E2E8F0" />
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <StackPanel Grid.Row="2" Margin="0,14,0,0">
+                        <TextBlock Text="إضافة مستخدم متصل" Style="{StaticResource FieldLabel}" />
+                        <TextBox Style="{StaticResource RoundedTextBox}"
+                                 Text="{Binding NewMemberUsername, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Content="إضافة عضو" Style="{StaticResource SecondaryButton}"
+                                Command="{Binding AddUserCommand}" IsEnabled="{Binding IsMediaActive, Converter={StaticResource InverseBooleanConverter}}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
         </Grid>
+
+        <DockPanel Grid.Row="3" Margin="0,18,0,0">
+            <TextBlock Text="{Binding StatusMessage}" Foreground="#FCA5A5" TextWrapping="Wrap" VerticalAlignment="Center" />
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="بدء المحادثة" Style="{StaticResource PrimaryButton}"
+                        Command="{Binding StartMediaCommand}"
+                        IsEnabled="{Binding IsHost}" />
+                <Button Content="إيقاف الوسائط" Style="{StaticResource SecondaryButton}"
+                        Command="{Binding StopMediaCommand}"
+                        IsEnabled="{Binding IsMediaActive}" />
+                <Button Content="مغادرة الغرفة" Style="{StaticResource DangerButton}"
+                        Command="{Binding LeaveRoomCommand}" />
+            </StackPanel>
+        </DockPanel>
     </Grid>
 </Window>

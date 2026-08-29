@@ -29,8 +29,17 @@ public enum MessageType
     LeaveRoomRequest,
     RoomUpdate,
     RoomError,
+    StartRoomMedia,
+    StopRoomMedia,
+    RoomMediaStarted,
+    RoomMediaStopped,
+    RoomInvite,
+    RoomInviteAccepted,
+    RoomInviteRejected,
 
     // Generic
     Error,
-    Disconnect
+    Disconnect,
+    StopConversationMedia,
+    StartConversationMedia
 }

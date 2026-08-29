@@ -1,79 +1,48 @@
 <Window x:Class="VideoCall.Client.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="نظام المكالمات" Height="560" Width="420"
+        Title="VideoCallSystem" Width="560" Height="620"
         WindowStartupLocation="CenterScreen">
-    <Grid Margin="20">
+    <Grid Margin="22">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="نظام المكالمات" Style="{StaticResource TitleText}" Grid.Column="0" />
-            <Border Style="{StaticResource StatusPill}" Grid.Column="1">
-                <TextBlock Text="{Binding ConnectionStatusText}" FontSize="12" />
-            </Border>
-        </Grid>
+        <DockPanel Grid.Row="0" Margin="0,0,0,8">
+            <TextBlock Text="VideoCallSystem" Style="{StaticResource TitleText}" DockPanel.Dock="Right" />
+            <TextBlock Text="{Binding ConnectionStatus}" Foreground="#94A3B8" Margin="18,8,0,0" />
+        </DockPanel>
+        <TextBlock Grid.Row="1" Text="{Binding CurrentUsername, StringFormat='مسجل الدخول: {0}'}"
+                   Foreground="#CBD5E1" Margin="0,0,0,12" />
 
-        <TextBlock Grid.Row="1" Margin="0,4,0,0" Style="{StaticResource SubtitleText}"
-                    Text="{Binding CurrentUsername, StringFormat='مسجل الدخول: {0}'}" />
-
-        <TextBlock Grid.Row="2" Text="{Binding StatusMessage}" Foreground="#F87171"
-                    Margin="0,6,0,0" TextWrapping="Wrap" TextAlignment="Right" />
-
-        <Border Grid.Row="3" Style="{StaticResource CardStyle}" Margin="0,16,0,16">
+        <Border Grid.Row="2" Style="{StaticResource Panel}">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="المستخدمون المتصلون" Style="{StaticResource FieldLabel}" FontSize="15" Margin="0,0,0,10" />
+                <TextBlock Text="المستخدمون المتصلون" Style="{StaticResource FieldLabel}" DockPanel.Dock="Top" />
                 <ListBox ItemsSource="{Binding OnlineUsers}" Background="Transparent" BorderThickness="0">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="#334155" CornerRadius="8" Padding="12,10" Margin="0,4">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <!-- اسم المستخدم مع محاذاة وشكل أوضح -->
-                                    <TextBlock Grid.Column="0" 
-                       Text="{Binding}" 
-                       VerticalAlignment="Center" 
-                       HorizontalAlignment="Left"
-                       FontSize="14"
-                       FontWeight="SemiBold"
-                       Foreground="#F8FAFC"
-                       Margin="0,0,16,0" />
-                             
-                                    <Button Grid.Column="1" 
-                    Content="اتصال" 
-                    Style="{StaticResource SuccessButton}"
-                    Padding="16,6"
-                    MinWidth="80"
-                    Command="{Binding DataContext.CallUserCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                    CommandParameter="{Binding}" />
-                                </Grid>
-                            </Border>
+                            <Grid Margin="0,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding}" Foreground="#F8FAFC" VerticalAlignment="Center" />
+                                <Button Grid.Column="1" Content="اتصال خاص" Style="{StaticResource PrimaryButton}"
+                                        Tag="{Binding}" Click="Call_Click" />
+                            </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
             </DockPanel>
         </Border>
 
-        <Grid Grid.Row="4">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Button Grid.Column="0" Content="الغرف" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0" Click="RoomsButton_Click" />
-            <Button Grid.Column="1" Content="تسجيل الخروج" Style="{StaticResource DangerButton}" Margin="6,0,0,0" Click="LogoutButton_Click" />
-        </Grid>
+        <TextBlock Grid.Row="3" Text="{Binding Status}" Foreground="#FCA5A5" TextWrapping="Wrap" Margin="0,8,0,66" />
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+            <Button Content="الغرف الجماعية" Style="{StaticResource SecondaryButton}" Click="Rooms_Click" />
+            <Button Content="تسجيل الخروج" Style="{StaticResource DangerButton}" Click="Logout_Click" />
+        </StackPanel>
     </Grid>
 </Window>

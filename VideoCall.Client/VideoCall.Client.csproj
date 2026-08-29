@@ -1,5 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
@@ -7,20 +6,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>VideoCall.Client</RootNamespace>
-    <ApplicationIcon></ApplicationIcon>
+    <AssemblyName>VideoCall.Client</AssemblyName>
+    <PlatformTarget>x64</PlatformTarget>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\VideoCall.Shared\VideoCall.Shared.csproj" />
-  </ItemGroup>
 
-  <ItemGroup>
-    <!-- NAudio: real microphone capture / speaker playback (WaveInEvent, WaveOutEvent). -->
+	  <ProjectReference Include="..\VideoCall.Shared\VideoCall.Shared.csproj" />
     <PackageReference Include="NAudio" Version="2.2.1" />
-    <!-- OpenCvSharp: real webcam capture (VideoCapture) and JPEG encode/decode
-         (Cv2.ImEncode/ImDecode) for sending compressed video frames over UDP. -->
     <PackageReference Include="OpenCvSharp4" Version="4.9.0.20240103" />
     <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.9.0.20240103" />
   </ItemGroup>
-
 </Project>

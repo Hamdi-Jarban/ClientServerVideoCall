@@ -10,6 +10,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\VideoCall.Shared\VideoCall.Shared.csproj" />
+    <Compile Remove="Server.cs" />
+    <Compile Remove="RoomManager.cs" />
+    <Compile Remove="CallManager.cs" />
+    <Compile Remove="UdpMediaRelay.cs" />
+    <Compile Remove="UserManager.cs" />
+    <Compile Remove="StartConversationMediaPayload.cs" />
+    <Compile Remove="StopConversationMediaPayload.cs" />
   </ItemGroup>
 
 </Project>

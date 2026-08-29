@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -5,80 +6,58 @@ using VideoCall.Shared.Messages;
 
 namespace VideoCall.Shared.Networking;
 
-/// <summary>
-/// TCP is a byte stream, not a message protocol: a single ReadAsync() call
-/// can return a partial message, several messages back to back, or
-/// anything in between. Every message is therefore framed on the wire as:
-///
-///   [4-byte big-endian length prefix] [UTF-8 JSON payload of that length]
-///
-/// This class is the single place that implements that framing, so
-/// Server and Client both read/write messages the same way instead of
-/// duplicating the logic.
-/// </summary>
-public class TcpMessageReaderWriter
+public sealed class TcpMessageReaderWriter
 {
-    private const int MaxMessageSizeBytes = 10 * 1024 * 1024; // 10 MB safety cap
+    private const int LengthPrefixBytes = 4;
+    private const int MaxMessageSizeBytes = 10 * 1024 * 1024;
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly NetworkStream _stream;
     private readonly SemaphoreSlim _writeLock = new(1, 1);
 
     public TcpMessageReaderWriter(NetworkStream stream)
     {
-        _stream = stream;
+        _stream = stream ?? throw new ArgumentNullException(nameof(stream));
     }
 
-    /// <summary>
-    /// Reads exactly one complete framed message from the stream, handling
-    /// partial reads transparently. Returns null if the remote side closed
-    /// the connection cleanly while we were waiting for the next message.
-    /// </summary>
     public async Task<Message?> ReadMessageAsync(CancellationToken ct)
     {
-        var lengthBuffer = await ReadExactAsync(4, ct);
-        if (lengthBuffer is null)
-        {
-            return null; // graceful disconnect
-        }
+        var prefix = await ReadExactAsync(LengthPrefixBytes, ct);
+        if (prefix is null) return null;
 
-        int length = BitConverter.ToInt32(lengthBuffer, 0);
+        var length = BinaryPrimitives.ReadInt32BigEndian(prefix);
         if (length <= 0 || length > MaxMessageSizeBytes)
-        {
-            throw new InvalidDataException($"Invalid message length received: {length}");
-        }
+            throw new InvalidDataException($"Invalid message length: {length}.");
 
-        var payloadBuffer = await ReadExactAsync(length, ct);
-        if (payloadBuffer is null)
-        {
-            return null; // remote closed mid-message
-        }
+        var payload = await ReadExactAsync(length, ct);
+        if (payload is null)
+            throw new EndOfStreamException("Connection closed in the middle of a message.");
 
-        string json = Encoding.UTF8.GetString(payloadBuffer);
-        var message = JsonSerializer.Deserialize<Message>(json);
-        if (message is null)
+        try
         {
-            throw new InvalidDataException("Received message could not be deserialized.");
+            var message = JsonSerializer.Deserialize<Message>(payload, JsonOptions);
+            return message ?? throw new InvalidDataException("Message is null.");
         }
-
-        return message;
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("Invalid JSON message.", ex);
+        }
     }
 
-    /// <summary>
-    /// Writes exactly one framed message. Guarded by a semaphore because
-    /// multiple logical senders (e.g. relaying a broadcast while handling
-    /// a direct reply) could otherwise interleave partial writes on the
-    /// same NetworkStream.
-    /// </summary>
     public async Task WriteMessageAsync(Message message, CancellationToken ct)
     {
-        string json = JsonSerializer.Serialize(message);
-        byte[] payload = Encoding.UTF8.GetBytes(json);
-        byte[] lengthPrefix = BitConverter.GetBytes(payload.Length);
+        ArgumentNullException.ThrowIfNull(message);
+        var payload = JsonSerializer.SerializeToUtf8Bytes(message, JsonOptions);
+        if (payload.Length == 0 || payload.Length > MaxMessageSizeBytes)
+            throw new InvalidDataException("Message size is outside the allowed range.");
+
+        var prefix = new byte[LengthPrefixBytes];
+        BinaryPrimitives.WriteInt32BigEndian(prefix, payload.Length);
 
         await _writeLock.WaitAsync(ct);
         try
         {
-            await _stream.WriteAsync(lengthPrefix, ct);
+            await _stream.WriteAsync(prefix, ct);
             await _stream.WriteAsync(payload, ct);
             await _stream.FlushAsync(ct);
         }
@@ -88,34 +67,21 @@ public class TcpMessageReaderWriter
         }
     }
 
-    /// <summary>
-    /// Reads exactly <paramref name="count"/> bytes, looping over ReadAsync()
-    /// as many times as needed since a single call may return fewer bytes
-    /// than requested. Returns null only if the stream ended cleanly before
-    /// any byte of a new message was read (graceful disconnect); throws if
-    /// it ends mid-message (abrupt disconnect).
-    /// </summary>
+
     private async Task<byte[]?> ReadExactAsync(int count, CancellationToken ct)
     {
         var buffer = new byte[count];
-        int totalRead = 0;
-
-        while (totalRead < count)
+        var offset = 0;
+        while (offset < count)
         {
-            int read = await _stream.ReadAsync(buffer.AsMemory(totalRead, count - totalRead), ct);
+            var read = await _stream.ReadAsync(buffer.AsMemory(offset, count - offset), ct);
             if (read == 0)
             {
-                if (totalRead == 0)
-                {
-                    return null;
-                }
-
-                throw new IOException("Connection closed mid-message.");
+                if (offset == 0) return null;
+                throw new EndOfStreamException("Connection closed in the middle of a frame.");
             }
-
-            totalRead += read;
+            offset += read;
         }
-
         return buffer;
     }
 }

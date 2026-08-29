@@ -1,9 +1,6 @@
 namespace VideoCall.Server;
 
-/// <summary>
-/// Minimal thread-safe console logger. Deliberately has no concept of
-/// "log a password" - callers must never pass credential values in.
-/// </summary>
+
 public static class Logger
 {
     private static readonly object ConsoleLock = new();

@@ -1,95 +1,106 @@
+using System.Net;
 using System.Net.Sockets;
 using VideoCall.Shared.Messages;
 using VideoCall.Shared.Networking;
 
 namespace VideoCall.Server;
 
-/// <summary>
-/// Owns one connected TCP client for its entire lifetime: reads messages
-/// in a loop, dispatches them to Server for handling, and writes replies
-/// back out. All state that is specific to this one connection (which
-/// user is logged in, their session token) lives here.
-/// </summary>
-public class ClientSession
+public sealed class ClientSession : IAsyncDisposable
 {
-    private readonly TcpClient _tcpClient;
-    private readonly TcpMessageReaderWriter _framing;
-    private readonly Server _server;
-    private readonly CancellationTokenSource _cts = new();
+    private readonly TcpClient _client;
+    private readonly TcpMessageReaderWriter _wire;
+    private readonly ServerHost _host;
+    private readonly CancellationTokenSource _stop = new();
+    private int _closed;
 
-    public string? Username { get; private set; }
     public Guid SessionToken { get; } = Guid.NewGuid();
+    public string? Username { get; private set; }
+    public bool IsAuthenticated => Username is not null;
+    public EndPoint? RemoteEndPoint => _client.Client.RemoteEndPoint;
 
-    public ClientSession(TcpClient tcpClient, Server server)
+    public ClientSession(TcpClient client, ServerHost host)
     {
-        _tcpClient = tcpClient;
-        _server = server;
-        _framing = new TcpMessageReaderWriter(tcpClient.GetStream());
+        _client = client ?? throw new ArgumentNullException(nameof(client));
+        _host = host ?? throw new ArgumentNullException(nameof(host));
+        _wire = new TcpMessageReaderWriter(client.GetStream());
+        _client.NoDelay = true;
     }
 
-    public async Task RunAsync()
+    public void SetAuthenticatedUsername(string username)
     {
+        if (string.IsNullOrWhiteSpace(username))
+            throw new ArgumentException("Username is required.", nameof(username));
+        Username = username.Trim();
+    }
+
+    public async Task RunAsync(CancellationToken serverCancellation)
+    {
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+            serverCancellation, _stop.Token);
+
         try
         {
-            while (!_cts.IsCancellationRequested)
+            while (!linked.IsCancellationRequested)
             {
-                Message? message;
-                try
-                {
-                    message = await _framing.ReadMessageAsync(_cts.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warn($"Client {DescribeForLog()} sent invalid data: {ex.Message}");
-                    break;
-                }
-
-                if (message is null)
-                {
-                    break; // graceful disconnect
-                }
-
-                try
-                {
-                    await _server.DispatchAsync(this, message);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"Unhandled error dispatching {message.Type} for {DescribeForLog()}: {ex.Message}");
-                    await SendAsync(Message.Create(MessageType.Error, new ErrorPayload(ErrorCodes.UnexpectedError, "An unexpected error occurred.")));
-                }
+                var message = await _wire.ReadMessageAsync(linked.Token);
+                if (message is null) break;
+                await _host.Router.DispatchAsync(this, message, linked.Token);
             }
         }
-        finally
+        catch (OperationCanceledException) when (linked.IsCancellationRequested)
         {
-            await _server.OnClientDisconnectedAsync(this);
-            _tcpClient.Close();
+            // Normal shutdown.
         }
-    }
-
-    public void SetUsername(string username) => Username = username;
-
-    public async Task SendAsync(Message message)
-    {
-        try
+        catch (IOException ex)
         {
-            await _framing.WriteMessageAsync(message, _cts.Token);
+            Logger.Warn($"TCP connection closed for {Describe()}: {ex.Message}");
+        }
+        catch (SocketException ex)
+        {
+            Logger.Warn($"TCP socket failed for {Describe()}: {ex.Message}");
         }
         catch (Exception ex)
         {
-            Logger.Warn($"Failed to send {message.Type} to {DescribeForLog()}: {ex.Message}");
-            Disconnect();
+            Logger.Error($"Unhandled session error for {Describe()}: {ex}");
+        }
+        finally
+        {
+            await CloseAsync();
         }
     }
 
-    public void Disconnect()
+    public async Task SendAsync(Message message, CancellationToken ct = default)
     {
-        _cts.Cancel();
+        ArgumentNullException.ThrowIfNull(message);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _stop.Token);
+        try
+        {
+            await _wire.WriteMessageAsync(message, linked.Token);
+        }
+        catch (OperationCanceledException) when (linked.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is IOException or SocketException or ObjectDisposedException)
+        {
+            Logger.Warn($"Failed to send {message.Type} to {Describe()}: {ex.Message}");
+            await CloseAsync();
+            throw;
+        }
     }
 
-    private string DescribeForLog() => Username ?? _tcpClient.Client.RemoteEndPoint?.ToString() ?? "unknown";
+    public async ValueTask DisposeAsync() => await CloseAsync();
+
+    public async Task CloseAsync()
+    {
+        if (Interlocked.Exchange(ref _closed, 1) != 0) return;
+
+        _stop.Cancel();
+        try { _client.Client.Shutdown(SocketShutdown.Both); }
+        catch { /* already disconnected */ }
+        _client.Dispose();
+        await _host.OnSessionClosedAsync(this);
+    }
+
+    private string Describe() => Username ?? RemoteEndPoint?.ToString() ?? "unknown";
 }

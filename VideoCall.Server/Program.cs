@@ -1,11 +1,26 @@
+using System.Net;
 using VideoCall.Server;
 
-var cts = new CancellationTokenSource();
-Console.CancelKeyPress += (_, e) =>
+using var shutdown = new CancellationTokenSource();
+Console.CancelKeyPress += (_, args) =>
 {
-    e.Cancel = true;
-    cts.Cancel();
+    args.Cancel = true;
+    shutdown.Cancel();
 };
 
-var server = new Server();
-await server.RunAsync(cts.Token);
+
+var accounts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+{
+    ["hamdi"] = "1234",
+    ["ali1"] = "1111",
+    ["ali2"] = "2222",
+    ["ali3"] = "3333"
+};
+
+await using var server = new ServerHost(
+    credentials: new DevelopmentCredentialValidator(accounts),
+    bindAddress: IPAddress.Any,
+    maxGroupMembers: 8);
+
+Console.WriteLine("VideoCall server started. Press Ctrl+C to stop.");
+await server.RunAsync(shutdown.Token);

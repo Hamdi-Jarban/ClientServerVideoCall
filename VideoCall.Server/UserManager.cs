@@ -15,7 +15,7 @@ public class UserManager
         ["ali3"] = "3333"
     };
 
-    // Username -> the ClientSession currently logged in as that user.
+
     private readonly ConcurrentDictionary<string, ClientSession> _online = new(StringComparer.OrdinalIgnoreCase);
 
     public bool ValidateCredentials(string username, string password)

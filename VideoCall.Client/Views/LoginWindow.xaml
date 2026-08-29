@@ -1,30 +1,83 @@
 <Window x:Class="VideoCall.Client.Views.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="تسجيل الدخول" Height="550" Width="380"
-        WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
-    <Grid>
-        <Border Style="{StaticResource CardStyle}" Margin="20" VerticalAlignment="Center">
-            <StackPanel>
-                <TextBlock Text="نظام المكالمات" Style="{StaticResource TitleText}" HorizontalAlignment="Center" />
-                <TextBlock Text="تسجيل الدخول" Style="{StaticResource SubtitleText}" HorizontalAlignment="Center" Margin="0,4,0,20" />
+        Title="تسجيل الدخول — VideoCallSystem"
+        Height="620" Width="980"
+        MinHeight="560" MinWidth="820"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        FlowDirection="RightToLeft">
+    <Grid Margin="28">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.1*" />
+            <ColumnDefinition Width="1.4*" />
+        </Grid.ColumnDefinitions>
 
-                <TextBlock Text="اسم المستخدم" Style="{StaticResource FieldLabel}" />
-                <TextBox x:Name="UsernameBox" Style="{StaticResource RoundedTextBox}" Margin="0,0,0,14"
-                         Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
+        <Border Grid.Column="0" Background="#172554" CornerRadius="18" Padding="32" Margin="0,0,18,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <Border Background="#2563EB" CornerRadius="14" Width="76" Height="76"
+                            HorizontalAlignment="Right" Margin="0,0,0,28">
+                        <TextBlock Text="VC" FontSize="30" FontWeight="Bold" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="VideoCallSystem" FontSize="31" FontWeight="Bold"
+                               Foreground="White" TextAlignment="Right" />
+                    <TextBlock Text="تواصل بوضوح، من أي مكان"
+                               FontSize="18" Foreground="#BFDBFE" TextAlignment="Right" Margin="0,12,0,0" />
+                    <TextBlock Text="مكالمات خاصة بين شخصين، وغرف جماعية للصوت والصورة، في تجربة واحدة بسيطة."
+                               Foreground="#CBD5E1" TextWrapping="Wrap" TextAlignment="Right"
+                               LineHeight="25" Margin="0,24,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Row="1">
+                    <Border Height="1" Background="#3B82F6" Opacity="0.45" Margin="0,0,0,16" />
+                    <TextBlock Text="اتصال آمن ومنظم عبر خادم مركزي"
+                               Foreground="#BFDBFE" TextAlignment="Right" />
+                    <TextBlock Text="الصوت والفيديو والغرف تحت إدارة واحدة"
+                               Foreground="#93C5FD" TextAlignment="Right" Margin="0,7,0,0" />
+                </StackPanel>
+            </Grid>
+        </Border>
 
-                <TextBlock Text="كلمة المرور" Style="{StaticResource FieldLabel}" />
-                <PasswordBox x:Name="PasswordBox" Style="{StaticResource RoundedPasswordBox}" Margin="0,0,0,14" />
+        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="34" Margin="18,0,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0">
+                    <TextBlock Text="مرحبًا بعودتك" Style="{StaticResource TitleText}" />
+                    <TextBlock Text="سجّل الدخول للانضمام إلى مكالماتك وغرفك"
+                               Style="{StaticResource SubtitleText}" Margin="0,7,0,30" />
+                </StackPanel>
 
-                <TextBlock Text="عنوان الخادم" Style="{StaticResource FieldLabel}" />
-                <TextBox Style="{StaticResource RoundedTextBox}" Margin="0,0,0,20"
-                         Text="{Binding ServerAddress, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+                <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                    <TextBlock Text="اسم المستخدم" Style="{StaticResource FieldLabel}" />
+                    <TextBox x:Name="UsernameBox" Style="{StaticResource RoundedTextBox}"
+                             Height="42" Margin="0,0,0,18"
+                             Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
 
-                <Button Content="تسجيل الدخول" Style="{StaticResource PrimaryButton}" Height="40" Click="LoginButton_Click" />
+                    <TextBlock Text="كلمة المرور" Style="{StaticResource FieldLabel}" />
+                    <PasswordBox x:Name="PasswordBox" Style="{StaticResource RoundedPasswordBox}"
+                                 Height="42" Margin="0,0,0,18" />
 
-                <TextBlock Text="{Binding StatusMessage}" Foreground="#F87171" Margin="0,14,0,0"
-                           TextWrapping="Wrap" TextAlignment="Center" />
-            </StackPanel>
+                    <TextBlock Text="عنوان الخادم" Style="{StaticResource FieldLabel}" />
+                    <TextBox x:Name="ServerBox" Style="{StaticResource RoundedTextBox}"
+                             Height="42" Margin="0,0,0,28"
+                             Text="{Binding ServerAddress, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <Button x:Name="LoginButton" Content="تسجيل الدخول" Style="{StaticResource PrimaryButton}"
+                            Height="48" Click="LoginButton_Click" />
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="#FCA5A5"
+                               TextWrapping="Wrap" TextAlignment="Center" Margin="0,16,0,0" />
+                    <TextBlock Text="للاختبار المحلي استخدم 127.0.0.1 كعنوان الخادم"
+                               Foreground="#64748B" TextAlignment="Center" Margin="0,18,0,0" />
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Window>

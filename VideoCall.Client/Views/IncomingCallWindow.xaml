@@ -1,21 +1,13 @@
 <Window x:Class="VideoCall.Client.Views.IncomingCallWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="مكالمة واردة" Height="260" Width="360"
-        WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Topmost="True">
-    <Border Style="{StaticResource CardStyle}" Margin="16">
-        <StackPanel VerticalAlignment="Center">
-            <TextBlock Text="مكالمة واردة" Style="{StaticResource TitleText}" HorizontalAlignment="Center" />
-            <TextBlock x:Name="CallerText" Style="{StaticResource SubtitleText}" FontSize="16"
-                       HorizontalAlignment="Center" Margin="0,10,0,26" TextWrapping="Wrap" TextAlignment="Center" />
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Button Grid.Column="0" Content="قبول" Style="{StaticResource SuccessButton}" Margin="0,0,6,0" Click="Accept_Click" />
-                <Button Grid.Column="1" Content="رفض" Style="{StaticResource DangerButton}" Margin="6,0,0,0" Click="Reject_Click" />
-            </Grid>
+        Title="مكالمة واردة" Width="340" Height="210"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+    <StackPanel Margin="24">
+        <TextBlock x:Name="CallerText" Style="{StaticResource TitleText}" TextAlignment="Center" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,28,0,0">
+            <Button Content="قبول" Style="{StaticResource PrimaryButton}" Click="Accept_Click" />
+            <Button Content="رفض" Style="{StaticResource DangerButton}" Click="Reject_Click" />
         </StackPanel>
-    </Border>
+    </StackPanel>
 </Window>

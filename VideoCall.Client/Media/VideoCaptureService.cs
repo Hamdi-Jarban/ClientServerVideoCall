@@ -2,76 +2,102 @@ using OpenCvSharp;
 
 namespace VideoCall.Client.Media;
 
-public class VideoCaptureService : IDisposable
+public sealed class VideoCaptureService : IAsyncDisposable, IDisposable
 {
     private const int TargetFps = 15;
     private const int JpegQuality = 60;
-
+    private readonly object _gate = new();
     private VideoCapture? _capture;
     private CancellationTokenSource? _cts;
-    private Task? _loopTask;
+    private Task? _loop;
+    private int _disposed;
 
     public bool IsCameraOn { get; private set; }
-
-    public event Action<byte[], Mat>? FrameCaptured;
+    public event Action<byte[], byte[]>? FrameCaptured;
+    public event Action<Exception>? CaptureError;
 
     public void Start()
     {
-        if (_capture is not null) return;
-
-        _capture = new VideoCapture(0);
-        if (!_capture.IsOpened())
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+        lock (_gate)
         {
-            throw new InvalidOperationException("CAMERA_UNAVAILABLE");
+            if (_capture is not null) return;
+            var capture = new VideoCapture(0);
+            if (!capture.IsOpened())
+            {
+                capture.Dispose();
+                throw new InvalidOperationException("CAMERA_UNAVAILABLE");
+            }
+            _capture = capture;
+            _cts = new CancellationTokenSource();
+            IsCameraOn = true;
+            _loop = CaptureLoopAsync(_cts.Token);
         }
-
-        IsCameraOn = true;
-        _cts = new CancellationTokenSource();
-        _loopTask = Task.Run(() => CaptureLoopAsync(_cts.Token));
     }
 
-    public void SetCameraOn(bool on) => IsCameraOn = on;
+    public void SetCameraOn(bool enabled) => IsCameraOn = enabled;
 
     private async Task CaptureLoopAsync(CancellationToken ct)
     {
-        var frameIntervalMs = 1000 / TargetFps;
         using var frame = new Mat();
-
-        while (!ct.IsCancellationRequested)
+        var delay = TimeSpan.FromMilliseconds(1000.0 / TargetFps);
+        try
         {
-            if (!IsCameraOn)
+            while (!ct.IsCancellationRequested)
             {
-                await Task.Delay(100, ct);
-                continue;
-            }
+                VideoCapture? capture;
+                lock (_gate) capture = _capture;
+                if (capture is null) break;
+                if (!IsCameraOn)
+                {
+                    await Task.Delay(100, ct).ConfigureAwait(false);
+                    continue;
+                }
 
-            if (_capture!.Read(frame) && !frame.Empty())
-            {
-                Cv2.ImEncode(".jpg", frame, out var jpegBytes, new ImageEncodingParam(ImwriteFlags.JpegQuality, JpegQuality));
-                using var previewCopy = frame.Clone();
-                FrameCaptured?.Invoke(jpegBytes, previewCopy);
-            }
-
-            try
-            {
-                await Task.Delay(frameIntervalMs, ct);
-            }
-            catch (TaskCanceledException)
-            {
-                break;
+                if (capture.Read(frame) && !frame.Empty())
+                {
+                    Cv2.ImEncode(".jpg", frame, out var encoded,
+                        new ImageEncodingParam(ImwriteFlags.JpegQuality, JpegQuality));
+                    Cv2.ImEncode(".bmp", frame, out var preview);
+                    FrameCaptured?.Invoke(encoded, preview);
+                }
+                await Task.Delay(delay, ct).ConfigureAwait(false);
             }
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception ex) { CaptureError?.Invoke(ex); }
     }
 
-    public void Stop()
+    public async Task StopAsync()
     {
-        _cts?.Cancel();
-        try { _loopTask?.Wait(500); } catch {  }
-        _capture?.Release();
-        _capture?.Dispose();
-        _capture = null;
-        IsCameraOn = false;
+        CancellationTokenSource? cts;
+        Task? loop;
+        VideoCapture? capture;
+        lock (_gate)
+        {
+            cts = _cts;
+            loop = _loop;
+            capture = _capture;
+            _cts = null;
+            _loop = null;
+            _capture = null;
+            IsCameraOn = false;
+        }
+        cts?.Cancel();
+        if (loop is not null)
+        {
+            try { await loop.ConfigureAwait(false); } catch (OperationCanceledException) { }
+        }
+        capture?.Release();
+        capture?.Dispose();
+        cts?.Dispose();
     }
 
-    public void Dispose() => Stop();
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        await StopAsync().ConfigureAwait(false);
+    }
+
+    public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
 }

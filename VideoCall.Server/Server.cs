@@ -16,15 +16,19 @@ public class Server
     private readonly UdpMediaRelay _udpRelay;
 
     private readonly ConcurrentDictionary<ClientSession, byte> _sessions = new();
-    // Kept alongside _calls in CallManager so the UDP relay can resolve
-    // "who are the two participants of this CallId" without needing a
-    // reference back into ClientSession internals.
+ 
     private readonly ConcurrentDictionary<Guid, (string Caller, string Callee)> _callParticipants = new();
+    private readonly ConcurrentDictionary<Guid, string> _roomMediaSessions = new();
 
     public Server()
     {
         _listener = new TcpListener(IPAddress.Any, NetworkConfig.TcpControlPort);
-        _udpRelay = new UdpMediaRelay(_callManager, ResolveCallParticipants, ResolveSessionToken);
+        _udpRelay = new UdpMediaRelay(
+            _callManager,
+            ResolveCallParticipants,
+            ResolveRoomId,
+            ResolveRoomMembers,
+            ResolveSessionToken);
         _callManager.OnCallTimedOut += call => _ = BroadcastCallTimedOutAsync(call.CallId, call.Caller, call.Callee);
     }
 
@@ -93,6 +97,14 @@ public class Server
 
             case MessageType.LeaveRoomRequest:
                 await HandleLeaveRoomAsync(session, message.ReadPayload<LeaveRoomRequestPayload>()!);
+                break;
+
+            case MessageType.StartRoomMedia:
+                await HandleStartRoomMediaAsync(session, message.ReadPayload<StartRoomMediaPayload>()!);
+                break;
+
+            case MessageType.StopRoomMedia:
+                await HandleStopRoomMediaAsync(session, message.ReadPayload<StopRoomMediaPayload>()!);
                 break;
 
             case MessageType.Disconnect:
@@ -309,9 +321,70 @@ public class Server
             return;
         }
 
-        if (room is not null && room.Members.Count > 0)
+        var media = _roomMediaSessions.FirstOrDefault(x => string.Equals(x.Value, request.RoomId, StringComparison.OrdinalIgnoreCase));
+        if (room is null || room.Members.Count == 0)
+        {
+            if (!media.Equals(default(KeyValuePair<Guid, string>)))
+            {
+                _roomMediaSessions.TryRemove(media.Key, out _);
+                _udpRelay.ForgetCall(media.Key);
+            }
+        }
+        else
         {
             await BroadcastRoomUpdateAsync(room);
+        }
+    }
+
+    private async Task HandleStartRoomMediaAsync(ClientSession session, StartRoomMediaPayload request)
+    {
+        if (session.Username is null || string.IsNullOrWhiteSpace(request.RoomId)) return;
+        if (!_roomManager.TryGetRoom(request.RoomId, out var room) || room is null)
+        {
+            await session.SendAsync(Message.Create(MessageType.RoomError,
+                new RoomErrorPayload(ErrorCodes.RoomNotFound, "This room does not exist.")));
+            return;
+        }
+        if (!room.Members.Contains(session.Username) || !string.Equals(room.Host, session.Username, StringComparison.OrdinalIgnoreCase))
+        {
+            await session.SendAsync(Message.Create(MessageType.RoomError,
+                new RoomErrorPayload(ErrorCodes.NotRoomMember, "Only the room host can start media.")));
+            return;
+        }
+        if (_roomMediaSessions.Any(x => string.Equals(x.Value, room.RoomId, StringComparison.OrdinalIgnoreCase)))
+        {
+            await session.SendAsync(Message.Create(MessageType.RoomError,
+                new RoomErrorPayload(ErrorCodes.MediaAlreadyStarted, "Room media is already active.")));
+            return;
+        }
+
+        var mediaId = Guid.NewGuid();
+        _roomMediaSessions[mediaId] = room.RoomId;
+        Logger.Info($"Room media started for {room.RoomId} ({mediaId}).");
+        await BroadcastRoomMediaAsync(room,
+            Message.Create(MessageType.RoomMediaStarted, new RoomMediaPayload(room.RoomId, mediaId)));
+    }
+
+    private async Task HandleStopRoomMediaAsync(ClientSession session, StopRoomMediaPayload request)
+    {
+        if (session.Username is null || string.IsNullOrWhiteSpace(request.RoomId)) return;
+        if (!_roomManager.TryGetRoom(request.RoomId, out var room) || room is null) return;
+        if (!room.Members.Contains(session.Username) || !string.Equals(room.Host, session.Username, StringComparison.OrdinalIgnoreCase)) return;
+
+        var media = _roomMediaSessions.FirstOrDefault(x => string.Equals(x.Value, room.RoomId, StringComparison.OrdinalIgnoreCase));
+        if (media.Equals(default(KeyValuePair<Guid, string>))) return;
+        _roomMediaSessions.TryRemove(media.Key, out _);
+        _udpRelay.ForgetCall(media.Key);
+        await BroadcastRoomMediaAsync(room,
+            Message.Create(MessageType.RoomMediaStopped, new RoomMediaPayload(room.RoomId, media.Key)));
+    }
+
+    private async Task BroadcastRoomMediaAsync(Room room, Message message)
+    {
+        foreach (var member in room.Members.ToList())
+        {
+            if (_userManager.TryGetSession(member, out var memberSession))
+                await memberSession.SendAsync(message);
         }
     }
 
@@ -396,4 +469,12 @@ public class Server
 
     private Guid? ResolveSessionToken(string username) =>
         _userManager.TryGetSession(username, out var session) ? session.SessionToken : null;
+
+    private string? ResolveRoomId(Guid mediaId) =>
+        _roomMediaSessions.TryGetValue(mediaId, out var roomId) ? roomId : null;
+
+    private IReadOnlyCollection<string> ResolveRoomMembers(string roomId) =>
+        _roomManager.TryGetRoom(roomId, out var room) && room is not null
+            ? room.Members.ToArray()
+            : Array.Empty<string>();
 }

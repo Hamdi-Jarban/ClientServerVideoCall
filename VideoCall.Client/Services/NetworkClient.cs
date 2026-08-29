@@ -26,13 +26,20 @@ public class NetworkClient : IDisposable
     public event Action<CallEndedPayload>? CallEnded;
     public event Action<CallTimedOutPayload>? CallTimedOut;
     public event Action<ErrorPayload>? CallError;
+    public event Action<ErrorPayload>? ErrorReceived;
     public event Action<RoomUpdatePayload>? RoomUpdated;
     public event Action<RoomErrorPayload>? RoomError;
+    public event Action<RoomMediaPayload>? RoomMediaStarted;
+    public event Action<RoomMediaPayload>? RoomMediaStopped;
+    public event Action<RoomInvitePayload>? RoomInviteReceived;
+    public event Action<RoomInviteAcceptedPayload>? RoomInviteAccepted;
+    public event Action<RoomInviteRejectedPayload>? RoomInviteRejected;
 
     public async Task<bool> ConnectAsync(string host)
     {
         try
         {
+            _disconnectedRaised = false;
             _tcpClient = new TcpClient();
             await _tcpClient.ConnectAsync(host, NetworkConfig.TcpControlPort);
             ServerHost = host;
@@ -68,11 +75,27 @@ public class NetworkClient : IDisposable
     public Task AddUserToRoomAsync(string roomId, string username) =>
         SendAsync(Message.Create(MessageType.AddUserToRoomRequest, new AddUserToRoomRequestPayload(roomId, username)));
 
+    public Task AcceptRoomInviteAsync(RoomInvitePayload invite) =>
+        SendAsync(Message.Create(MessageType.RoomInviteAccepted,
+            new RoomInviteAcceptedPayload(invite.InviteId, invite.RoomId, Username ?? string.Empty)));
+
+    public Task RejectRoomInviteAsync(RoomInvitePayload invite) =>
+        SendAsync(Message.Create(MessageType.RoomInviteRejected,
+            new RoomInviteRejectedPayload(invite.InviteId, invite.RoomId, Username ?? string.Empty)));
+
     public Task JoinRoomAsync(string roomId) =>
         SendAsync(Message.Create(MessageType.JoinRoomRequest, new JoinRoomRequestPayload(roomId)));
 
     public Task LeaveRoomAsync(string roomId) =>
         SendAsync(Message.Create(MessageType.LeaveRoomRequest, new LeaveRoomRequestPayload(roomId)));
+
+    public Task StartRoomMediaAsync(string roomId) =>
+        SendAsync(Message.Create(MessageType.StartRoomMedia,
+            new StartRoomMediaPayload(roomId, Guid.Empty)));
+
+    public Task StopRoomMediaAsync(string roomId, Guid mediaId) =>
+        SendAsync(Message.Create(MessageType.StopRoomMedia,
+            new StopRoomMediaPayload(roomId, mediaId)));
 
     private async Task SendAsync(Message message)
     {
@@ -83,7 +106,7 @@ public class NetworkClient : IDisposable
 
         try
         {
-            await _framing.WriteMessageAsync(message, _cts.Token);
+            await _framing.WriteMessageAsync(message, _cts.Token).ConfigureAwait(false);
         }
         catch (Exception)
         {
@@ -100,7 +123,7 @@ public class NetworkClient : IDisposable
                 Message? message;
                 try
                 {
-                    message = await _framing!.ReadMessageAsync(ct);
+                    message = await _framing!.ReadMessageAsync(ct).ConfigureAwait(false);
                 }
                 catch (Exception)
                 {
@@ -163,12 +186,34 @@ public class NetworkClient : IDisposable
                 Raise(() => CallError?.Invoke(message.ReadPayload<ErrorPayload>()!));
                 break;
 
+            case MessageType.Error:
+                Raise(() => ErrorReceived?.Invoke(message.ReadPayload<ErrorPayload>()!));
+                break;
+
             case MessageType.RoomUpdate:
                 Raise(() => RoomUpdated?.Invoke(message.ReadPayload<RoomUpdatePayload>()!));
                 break;
 
             case MessageType.RoomError:
                 Raise(() => RoomError?.Invoke(message.ReadPayload<RoomErrorPayload>()!));
+                break;
+
+            case MessageType.RoomMediaStarted:
+                Raise(() => RoomMediaStarted?.Invoke(message.ReadPayload<RoomMediaPayload>()!));
+                break;
+
+            case MessageType.RoomMediaStopped:
+                Raise(() => RoomMediaStopped?.Invoke(message.ReadPayload<RoomMediaPayload>()!));
+                break;
+
+            case MessageType.RoomInvite:
+                Raise(() => RoomInviteReceived?.Invoke(message.ReadPayload<RoomInvitePayload>()!));
+                break;
+            case MessageType.RoomInviteAccepted:
+                Raise(() => RoomInviteAccepted?.Invoke(message.ReadPayload<RoomInviteAcceptedPayload>()!));
+                break;
+            case MessageType.RoomInviteRejected:
+                Raise(() => RoomInviteRejected?.Invoke(message.ReadPayload<RoomInviteRejectedPayload>()!));
                 break;
         }
     }

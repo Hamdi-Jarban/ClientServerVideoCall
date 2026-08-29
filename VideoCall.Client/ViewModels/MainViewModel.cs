@@ -1,87 +1,93 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Input;
 using VideoCall.Client.Services;
 using VideoCall.Shared.Messages;
 
 namespace VideoCall.Client.ViewModels;
 
-public class MainViewModel : ViewModelBase
+public sealed class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly NetworkClient _network;
-
-    private bool _isConnected = true;
-    private string _statusMessage = string.Empty;
+    private string _status = string.Empty;
+    private bool _connected;
 
     public ObservableCollection<string> OnlineUsers { get; } = new();
-
     public string CurrentUsername => _network.Username ?? string.Empty;
-
-    public bool IsConnected
-    {
-        get => _isConnected;
-        set => SetField(ref _isConnected, value);
-    }
-
-    public string ConnectionStatusText => IsConnected ? "متصل بالخادم" : "غير متصل بالخادم";
-
-    public string StatusMessage
-    {
-        get => _statusMessage;
-        set => SetField(ref _statusMessage, value);
-    }
-
-    /// <summary>Raised with the callee's name when the user clicks "اتصال" for that user.</summary>
-    public event Action<string>? CallRequested;
-
-    public event Action<CallRequestPayload>? IncomingCallReceived;
+    public bool IsConnected { get => _connected; private set => SetField(ref _connected, value); }
+    public string Status { get => _status; set => SetField(ref _status, value); }
+    public string ConnectionStatus => IsConnected ? "متصل بالخادم" : "غير متصل بالخادم";
 
     public ICommand CallUserCommand { get; }
-    public ICommand LogoutCommand { get; }
+    public ICommand OpenRoomsCommand { get; }
+    public event Action<string>? PrivateCallRequested;
+    public event Action<CallRequestPayload>? IncomingCall;
+    public event Action<CallAcceptedPayload>? PrivateCallAccepted;
+    public event Action<CallRejectedPayload>? PrivateCallRejected;
+    public event Action<CallEndedPayload>? PrivateCallEnded;
+    public event Action? OpenRoomsRequested;
 
     public MainViewModel(NetworkClient network)
     {
         _network = network;
-        _network.OnlineUsersUpdated += OnOnlineUsersUpdated;
+        IsConnected = network.IsConnected;
+        _network.OnlineUsersUpdated += OnUsersUpdated;
         _network.Disconnected += OnDisconnected;
-        _network.IncomingCall += payload => IncomingCallReceived?.Invoke(payload);
-        _network.CallError += OnCallError;
+        _network.IncomingCall += payload => OnUi(() => IncomingCall?.Invoke(payload));
+        _network.CallAccepted += payload => OnUi(() => PrivateCallAccepted?.Invoke(payload));
+        _network.CallRejected += payload => OnUi(() => PrivateCallRejected?.Invoke(payload));
+        _network.CallEnded += payload => OnUi(() => PrivateCallEnded?.Invoke(payload));
+        _network.ErrorReceived += OnError;
 
-        CallUserCommand = new RelayCommand(param =>
-        {
-            if (param is string username)
-            {
-                CallRequested?.Invoke(username);
-            }
-        });
-
-        LogoutCommand = new RelayCommand(_ => _network.Dispose());
+        CallUserCommand = new RelayCommand(() => { });
+        OpenRoomsCommand = new RelayCommand(() => OpenRoomsRequested?.Invoke());
     }
 
-    private void OnOnlineUsersUpdated(OnlineUsersUpdatePayload payload)
+    public void RequestPrivateCall(string username)
     {
-        OnlineUsers.Clear();
-        foreach (var username in payload.Usernames.Where(u => u != CurrentUsername))
-        {
-            OnlineUsers.Add(username);
-        }
-
-        OnPropertyChanged(nameof(CurrentUsername));
+        if (!IsConnected || string.IsNullOrWhiteSpace(username)) return;
+        PrivateCallRequested?.Invoke(username);
     }
 
-    private void OnDisconnected()
+    public async Task RejectIncomingCallAsync(CallRequestPayload request) =>
+        await _network.RejectCallAsync(request.CallId, request.Caller);
+
+    public async Task AcceptIncomingCallAsync(CallRequestPayload request) =>
+        await _network.AcceptCallAsync(request.CallId, request.Caller);
+
+    private void OnUsersUpdated(OnlineUsersUpdatePayload payload)
+    {
+        OnUi(() =>
+        {
+            OnlineUsers.Clear();
+            foreach (var user in payload.Usernames.Where(x => !x.Equals(CurrentUsername, StringComparison.OrdinalIgnoreCase)))
+                OnlineUsers.Add(user);
+            IsConnected = true;
+            Raise(nameof(CurrentUsername));
+            Raise(nameof(ConnectionStatus));
+        });
+    }
+
+    private void OnDisconnected() => OnUi(() =>
     {
         IsConnected = false;
-        OnPropertyChanged(nameof(ConnectionStatusText));
-        StatusMessage = "تعذر الاتصال بالخادم";
+        Raise(nameof(ConnectionStatus));
+        Status = "انقطع الاتصال بالخادم.";
+    });
+
+    private void OnError(ErrorPayload error) => OnUi(() => Status = error.Message);
+
+    public void Dispose()
+    {
+        _network.OnlineUsersUpdated -= OnUsersUpdated;
+        _network.Disconnected -= OnDisconnected;
+        _network.ErrorReceived -= OnError;
     }
 
-    private void OnCallError(ErrorPayload error)
+    private static void OnUi(Action action)
     {
-        StatusMessage = error.ErrorCode switch
-        {
-            ErrorCodes.TargetOffline => "المستخدم غير متصل",
-            ErrorCodes.TargetBusy => "المستخدم مشغول بمكالمة أخرى",
-            _ => "حدث خطأ غير متوقع"
-        };
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess()) action();
+        else dispatcher.BeginInvoke(action);
     }
 }

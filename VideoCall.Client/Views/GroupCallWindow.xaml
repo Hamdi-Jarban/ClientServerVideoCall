@@ -1,0 +1,103 @@
+<Window x:Class="VideoCall.Client.Views.GroupCallWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="المحادثة الجماعية" Height="760" Width="1180"
+        MinHeight="620" MinWidth="900"
+        WindowStartupLocation="CenterOwner"
+        FlowDirection="RightToLeft">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,18">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="المحادثة الجماعية" Style="{StaticResource TitleText}" />
+                <TextBlock Text="{Binding RoomId, StringFormat='الغرفة: {0}'}"
+                           Foreground="#94A3B8" Margin="0,6,0,0" />
+            </StackPanel>
+            <Border Grid.Column="1" Background="#172554" Padding="14,8" CornerRadius="8">
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#BFDBFE" />
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="255" />
+                <ColumnDefinition Width="18" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="المعاينة المحلية" Style="{StaticResource FieldLabel}" />
+                <Border Background="#020617" CornerRadius="12" Height="190" Margin="0,0,0,18">
+                    <Grid>
+                        <Image Source="{Binding LocalVideo}" Stretch="Uniform" Margin="5" />
+                        <TextBlock Text="الكاميرا متوقفة" Foreground="#64748B"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+                <Border Background="#1E293B" CornerRadius="12" Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="المشاركون" Style="{StaticResource FieldLabel}" />
+                        <ItemsControl ItemsSource="{Binding Participants}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel Margin="0,8">
+                                        <Ellipse Width="9" Height="9" Fill="#22C55E" Margin="0,0,9,0" />
+                                        <TextBlock Text="{Binding Username}" Foreground="#E2E8F0" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <Border Grid.Column="2" Background="#020617" CornerRadius="12" Padding="8">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding Participants}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#1E293B" CornerRadius="10" Margin="7" MinHeight="230">
+                                    <Grid>
+                                        <Image Source="{Binding Video}" Stretch="Uniform" Margin="6" />
+                                        <TextBlock Text="لا توجد صورة" Foreground="#64748B"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Visibility="{Binding Video, Converter={StaticResource NullToVisibilityConverter}}" />
+                                        <Border Background="#D90F172A" VerticalAlignment="Bottom" Padding="10,7">
+                                            <DockPanel>
+                                                <TextBlock Text="{Binding Username}" Foreground="White" FontWeight="SemiBold" />
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding IsMuted, StringFormat='كتم: {0}'}"
+                                                           Foreground="#CBD5E1" FontSize="11" />
+                                            </DockPanel>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2" Background="#1E293B" CornerRadius="12" Padding="12" Margin="0,18,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="الميكروفون" Style="{StaticResource SecondaryButton}" Command="{Binding ToggleMuteCommand}" />
+                <Button Content="الكاميرا" Style="{StaticResource SecondaryButton}" Command="{Binding ToggleCameraCommand}" />
+                <Button Content="مغادرة المكالمة" Style="{StaticResource DangerButton}" Command="{Binding LeaveCommand}" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

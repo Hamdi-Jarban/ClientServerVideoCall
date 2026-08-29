@@ -14,7 +14,7 @@
     <SolidColorBrush x:Key="BrushBorder" Color="#334155" />
 
     <Style TargetType="Window">
-        <Setter Property="FlowDirection" Value="LeftToRight" />
+        <Setter Property="FlowDirection" Value="RightToLeft" />
         <Setter Property="Background" Value="{StaticResource BrushBackground}" />
         <Setter Property="FontFamily" Value="Segoe UI, Tahoma" />
         <Setter Property="FontSize" Value="14" />
@@ -30,6 +30,8 @@
         <Setter Property="BorderThickness" Value="1" />
 
     </Style>
+
+    <Style x:Key="Panel" TargetType="Border" BasedOn="{StaticResource CardStyle}" />
 
     <Style x:Key="TitleText" TargetType="TextBlock">
         <Setter Property="FontSize" Value="22" />

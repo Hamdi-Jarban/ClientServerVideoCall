@@ -1,0 +1,22 @@
+services:
+  coturn:
+    image: coturn/coturn:4.6.3
+    restart: unless-stopped
+    command:
+      - -n
+      - --log-file=stdout
+      - --realm=videocall.local
+      - --server-name=videocall-turn
+      - --fingerprint
+      - --lt-cred-mech
+      - --user=turnuser:change-me
+      - --min-port=49160
+      - --max-port=49200
+      - --external-ip=${TURN_EXTERNAL_IP:-127.0.0.1}
+      - --listening-port=3478
+      - --tls-listening-port=5349
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+      - "5349:5349/tcp"
+      - "49160-49200:49160-49200/udp"
