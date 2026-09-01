@@ -56,19 +56,28 @@
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" VerticalAlignment="Center">
-                    <TextBlock Text="اسم المستخدم" Style="{StaticResource FieldLabel}" />
+                    <TextBlock Text="اسم المستخدم" Style="{StaticResource FieldLabel}" Height="30" Width="429" />
                     <TextBox x:Name="UsernameBox" Style="{StaticResource RoundedTextBox}"
-                             Height="42" Margin="0,0,0,18"
-                             Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
+                             Height="58" Margin="0,0,0,18"
+                             Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Left" />
 
                     <TextBlock Text="كلمة المرور" Style="{StaticResource FieldLabel}" />
                     <PasswordBox x:Name="PasswordBox" Style="{StaticResource RoundedPasswordBox}"
-                                 Height="42" Margin="0,0,0,18" />
+                                 Height="55" Margin="0,0,0,18" RenderTransformOrigin="0.5,0.5" >
+                        <PasswordBox.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform/>
+                                <SkewTransform AngleX="-3.122"/>
+                                <RotateTransform/>
+                                <TranslateTransform X="-1.145"/>
+                            </TransformGroup>
+                        </PasswordBox.RenderTransform>
+                    </PasswordBox>
 
                     <TextBlock Text="عنوان الخادم" Style="{StaticResource FieldLabel}" />
                     <TextBox x:Name="ServerBox" Style="{StaticResource RoundedTextBox}"
-                             Height="42" Margin="0,0,0,28"
-                             Text="{Binding ServerAddress, UpdateSourceTrigger=PropertyChanged}" />
+                             Height="58" Margin="0,0,0,28"
+                             Text="{Binding ServerAddress, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Left" />
 
                     <Button x:Name="LoginButton" Content="تسجيل الدخول" Style="{StaticResource PrimaryButton}"
                             Height="48" Click="LoginButton_Click" />

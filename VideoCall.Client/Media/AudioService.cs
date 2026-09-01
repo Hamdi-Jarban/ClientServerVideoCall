@@ -116,8 +116,36 @@ public sealed class AudioPlaybackService : IDisposable
     public void Enqueue(byte[] pcm)
     {
         if (Volatile.Read(ref _disposed) != 0 || pcm is null || pcm.Length == 0) return;
+
+        // How long the audio already queued will take to finish playing. This
+        // chunk goes on the back of that queue, so it won't actually reach the
+        // speaker until roughly this much time has passed.
+        var playbackDelay = _buffer.BufferedDuration;
+
         _buffer.AddSamples(pcm, 0, pcm.Length);
-        EchoReference.Write(pcm);
+
+        // Write to the echo reference on the same delay, so the AEC compares
+        // the microphone against what is acoustically coming out of the
+        // speaker *right now*, not what was merely enqueued just now. Without
+        // this, the reference and the real echo can be out of sync by up to
+        // BufferDuration (800ms), which is far more than the canceller's
+        // filter window and lets the echo pass through uncancelled.
+        ScheduleEchoReferenceWrite(pcm, playbackDelay);
+    }
+
+    private void ScheduleEchoReferenceWrite(byte[] pcm, TimeSpan delay)
+    {
+        if (delay <= TimeSpan.Zero)
+        {
+            EchoReference.Write(pcm);
+            return;
+        }
+
+        _ = Task.Delay(delay).ContinueWith(_ =>
+        {
+            if (Volatile.Read(ref _disposed) == 0)
+                EchoReference.Write(pcm);
+        }, TaskScheduler.Default);
     }
 
     public void Dispose()
@@ -125,5 +153,7 @@ public sealed class AudioPlaybackService : IDisposable
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         _output.Stop();
         _output.Dispose();
+    
     }
+
 }
